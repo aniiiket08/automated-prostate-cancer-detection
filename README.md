@@ -134,7 +134,3 @@ This work is written up as *"Automated System for Prostate Cancer Detection from
 
 ---
 
-## 👤 Author
-
-**Aniket Patil**
-CS (AI) undergraduate, KLE Technological University
