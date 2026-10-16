@@ -1,118 +1,149 @@
-# 🔬 Prostate Cancer Detection from Histopathology Images
+<div align="center">
 
-> Texture features + gradient boosting beating deep CNNs on a small medical imaging dataset — then compressed down to run on a phone.
+# Prostate Cancer Detection
 
-![Python](https://img.shields.io/badge/Python-3.10-blue?logo=python&logoColor=white)
-![XGBoost](https://img.shields.io/badge/XGBoost-classifier-orange?logo=xgboost)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-Keras-FF6F00?logo=tensorflow&logoColor=white)
-![TFLite](https://img.shields.io/badge/TensorFlow%20Lite-edge%20deployment-brightgreen)
-![Status](https://img.shields.io/badge/status-active-success)
+**Texture features and gradient boosting on histopathology images, compressed for on-device inference.**
 
-An ML/DL pipeline for classifying prostate biopsy tissue as cancerous or non-cancerous, built on the SICAPv2 whole-slide image dataset. The project pits handcrafted texture features feeding into XGBoost against a lineup of deep CNNs, then takes the best lightweight model through pruning and quantization for on-device (Android) inference.
+![Python](https://img.shields.io/badge/python-3.10-3b4252?style=flat-square&logo=python&logoColor=white)
+![XGBoost](https://img.shields.io/badge/xgboost-classifier-3b4252?style=flat-square)
+![TensorFlow](https://img.shields.io/badge/tensorflow-keras-3b4252?style=flat-square&logo=tensorflow&logoColor=white)
+![TFLite](https://img.shields.io/badge/tflite-edge%20deployment-3b4252?style=flat-square)
 
-The short version: a boosted tree model trained on GLCM + LBP texture descriptors beat every deep network we threw at it, and it did it with a fraction of the compute. 🌳 > 🧠
+[Overview](#overview) · [Pipeline](#pipeline) · [Results](#results) · [Approach](#approach) · [Dataset](#dataset) · [Structure](#project-structure) · [Reference](#reference)
 
----
+</div>
 
-## 📌 Why this exists
+<br>
 
-Reading prostate biopsy slides is slow, subjective, and prone to inter-pathologist disagreement — the same tissue sample can get different grades from different experts. Deep learning is the obvious answer, but it usually wants large, well-annotated datasets, which histopathology rarely has. This project asks a narrower question: on a modest dataset, can classical texture features paired with an ensemble classifier hold their own against deep CNNs — and can the winner be shrunk small enough to run on a phone?
+## Overview
 
----
+Reading prostate biopsy slides is slow and subjective, and the same tissue can receive different grades from different pathologists. Deep learning is the obvious fix, but it usually needs large annotated datasets, which histopathology rarely has.
 
-## 🧭 Pipeline at a glance
+This project asks a narrower question: on a modest dataset, can handcrafted texture features with an ensemble classifier hold up against deep CNNs, and can the best model be shrunk enough to run on a phone?
+
+On SICAPv2, a boosted tree model on GLCM and LBP features outperformed every deep network tested, at a fraction of the compute.
+
+|  |  |
+|---|---|
+| **Task** | Binary classification, cancerous vs. non-cancerous tissue |
+| **Dataset** | SICAPv2, 18,783 patches |
+| **Best model** | XGBoost on GLCM + LBP features |
+| **Accuracy / ROC-AUC** | 0.8437 / 0.9243 |
+| **Baselines** | MobileNetV2, MobileNetV3, EfficientNetB0 |
+| **Deployment** | TFLite with quantization and pruning |
+
+<br>
+
+## Pipeline
 
 <p align="center">
-  <img src="assets/methodology_pipeline.png" alt="Methodology pipeline: dataset, preprocessing, feature extraction, model, evaluation, prediction" width="850">
+  <img src="assets/methodology_pipeline.png" alt="Methodology pipeline: dataset, preprocessing, feature extraction, model, evaluation, prediction" width="860">
 </p>
 
-Dataset → preprocessing & background removal → GLCM / LBP / HOG feature extraction → XGBoost → evaluation → prostate cancer / no cancer.
+<br>
 
----
+## Results
 
-## 📊 Results
+### Handcrafted features with XGBoost
 
-### 🏆 Handcrafted features + XGBoost
+Trained on 256 x 256 tissue patches.
 
-Trained on 256×256 tissue patches from SICAPv2:
-
-| Feature Set | Accuracy | ROC-AUC | Sensitivity | Specificity | F1 (macro) |
+| Feature set | Accuracy | ROC-AUC | Sensitivity | Specificity | F1 (macro) |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **GLCM + LBP** 🥇 | **0.8437** | **0.9243** | 0.8462 | 0.8418 | 0.8420 |
+| **GLCM + LBP** | **0.8437** | **0.9243** | 0.8462 | 0.8418 | 0.8420 |
 | GLCM + HOG | 0.6984 | 0.7607 | 0.6130 | 0.7630 | 0.6880 |
 | HOG + LBP | 0.6912 | 0.7416 | 0.5690 | 0.7830 | 0.6910 |
 
-Individual features (LBP, GLCM, HOG alone) all landed in the 0.67–0.71 accuracy range — combining GLCM and LBP is what pushed performance up, since one captures pixel-level texture statistics and the other picks up cell-boundary and micro-structure detail. HOG on its own added mostly noise; prostate tissue doesn't have the kind of consistent edge orientation HOG is built for.
+Each descriptor alone (LBP, GLCM, HOG) landed between 0.67 and 0.71 accuracy. Combining GLCM and LBP gave the jump, since one captures pixel-level texture statistics and the other captures cell-boundary and micro-structure detail. HOG added mostly noise, because prostate tissue lacks the consistent edge orientation it is designed for.
 
-**Deep learning baselines** (MobileNetV2, MobileNetV3, EfficientNetB0) were trained and evaluated on the same splits — with a dataset this size, they consistently trailed the texture + XGBoost approach and were more prone to overfitting.
+The deep baselines (MobileNetV2, MobileNetV3, EfficientNetB0) were trained on the same splits. At this dataset size they trailed the XGBoost model and overfit more readily.
 
-For context, this also edges out the DenseNet121 baseline reported by Rao & RaviSankar (2024) on the same dataset — **84.37% vs. 83.04%** accuracy. 📈
-
-<p align="center">
-  <img src="assets/roc_curves.png" alt="ROC curves comparing XGBoost feature combinations against deep CNNs" width="700">
-</p>
+For context, 84.37% accuracy edges out the 83.04% DenseNet121 baseline reported by Rao and RaviSankar (2024) on the same dataset.
 
 <p align="center">
-  <img src="assets/confusion_matrix.png" alt="Confusion matrix for the XGBoost GLCM+LBP model" width="450">
+  <img src="assets/roc_curves.png" alt="ROC curves comparing XGBoost feature combinations against deep CNNs" width="640">
+  &nbsp;
+  <img src="assets/confusion_matrix.png" alt="Confusion matrix for the XGBoost GLCM+LBP model" width="360">
 </p>
 
-### 📱 Edge deployment
+### Edge deployment
 
-The best deep model was carried through TFLite conversion, post-training quantization (dynamic-range, float16, full INT8), and pruning to check how much accuracy survives compression for mobile deployment:
+The best deep model was converted to TFLite and compressed with dynamic-range, float16, and full INT8 quantization, plus pruning.
 
 | Variant | ROC-AUC |
 |---|:---:|
 | Float TFLite | 0.9458 |
 | Pruned Keras | 0.9458 |
-| Float16 Quant TFLite | 0.9456 |
-| Dynamic Quant TFLite | 0.9374 |
-| Pruned + Dynamic Quant TFLite | 0.9360 |
+| Float16 quantized TFLite | 0.9456 |
+| Dynamic-range quantized TFLite | 0.9374 |
+| Pruned + dynamic-range quantized TFLite | 0.9360 |
 
-Quantization and pruning cost less than a point of AUC — a solid trade for the drop in model size and inference latency on-device. ⚡
+Compression costs under one point of AUC in exchange for a smaller model and lower on-device latency.
 
----
+<br>
 
-## 🛠️ Approach
+## Approach
 
 **1. Preprocessing**
-WSIs from SICAPv2 are cut into non-overlapping 256×256 patches, each paired with a binary mask (lesion present / absent). Patches are further tiled into 32×32 blocks, and any tile that's more than ~95% background is dropped — it adds nothing but noise to training.
+Whole-slide images are cut into non-overlapping 256 x 256 patches, each paired with a binary lesion mask. Patches are tiled into 32 x 32 blocks, and tiles that are more than about 95% background are dropped.
 
-**2. Feature extraction** — three handcrafted descriptors per patch:
-- 🧵 **GLCM** (Gray-Level Co-occurrence Matrix) — second-order texture statistics (contrast, homogeneity, energy, correlation) across multiple distances and orientations.
-- 🔘 **LBP** (Local Binary Pattern) — micro-texture around cell boundaries and nuclei, radius 1, 8 neighbors.
-- 📐 **HOG** (Histogram of Oriented Gradients) — macro-structural edge and gradient information.
+**2. Feature extraction**
+Three handcrafted descriptors per patch:
+
+| Descriptor | Captures | Settings |
+|---|---|---|
+| GLCM | Second-order texture: contrast, homogeneity, energy, correlation | Multiple distances and orientations |
+| LBP | Micro-texture around nuclei and cell boundaries | Radius 1, 8 neighbors |
+| HOG | Macro-structure: edges and gradients | Default orientation bins |
 
 **3. Classification**
-An XGBoost classifier (`n_estimators=250`, `learning_rate=0.05`, `max_depth=6`, `subsample=0.8`) trained on the combined feature vectors, benchmarked against MobileNetV2, MobileNetV3 (Small/Large), and EfficientNetB0.
-
-<p align="center">
-  <img src="assets/xgboost_architecture.png" alt="XGBoost architecture" width="600">
-</p>
-
-<p align="center">
-  <img src="assets/mobilenetv2_architecture.png" alt="MobileNetV2 architecture" width="700">
-</p>
-
-**4. Compression for edge deployment**
-The strongest deep model is converted to TFLite and compressed via quantization and pruning, then benchmarked for inference time and weight footprint — end target: an Android inference app. 📲
-
----
-
-## 🗂️ Dataset
-
-[**SICAPv2**](https://data.mendeley.com/datasets/9xxm58dvs3/1) — 18,783 RGB prostate tissue patches with pixel-level cancer masks, giving a fairly balanced split of 8,063 positive (lesion present) and 10,720 negative (no lesion) patches.
-
----
-
-## ⚙️ Tech stack
-
-`Python` · `scikit-learn` · `scikit-image` · `XGBoost` · `TensorFlow / Keras` · `OpenCV` · `TensorFlow Lite` · `TensorFlow Model Optimization`
-
----
-
-## 📁 Repo structure
+XGBoost on the combined feature vectors, benchmarked against the deep CNNs.
 
 ```
+n_estimators=250   learning_rate=0.05   max_depth=6   subsample=0.8
+```
+
+<details>
+<summary><b>Model architectures</b></summary>
+
+<br>
+
+<p align="center">
+  <img src="assets/xgboost_architecture.png" alt="XGBoost architecture" width="560">
+</p>
+
+<p align="center">
+  <img src="assets/mobilenetv2_architecture.png" alt="MobileNetV2 architecture" width="680">
+</p>
+
+</details>
+
+**4. Compression**
+The strongest deep model is converted to TFLite, quantized and pruned, then benchmarked for inference time and weight size. The end target is an Android inference app.
+
+<br>
+
+## Dataset
+
+[SICAPv2](https://data.mendeley.com/datasets/9xxm58dvs3/1) contains 18,783 RGB prostate tissue patches with pixel-level cancer masks.
+
+| Class | Patches |
+|---|:---:|
+| Lesion present | 8,063 |
+| No lesion | 10,720 |
+
+<br>
+
+## Tech stack
+
+Python, scikit-learn, scikit-image, XGBoost, TensorFlow / Keras, OpenCV, TensorFlow Lite, TensorFlow Model Optimization
+
+<br>
+
+## Project structure
+
+```
+.
 ├── assets/
 │   ├── methodology_pipeline.png
 │   ├── xgboost_architecture.png
@@ -120,17 +151,16 @@ The strongest deep model is converted to TFLite and compressed via quantization 
 │   ├── confusion_matrix.png
 │   └── roc_curves.png
 ├── notebooks/
-│   └── prostate_cancer_ml_eis_project.ipynb   # full pipeline: features, models, quantization, benchmarking
+│   └── prostate_cancer_ml_eis_project.ipynb   features, models, quantization, benchmarking
 ├── paper/
-│   └── prostate_cancer_xgboost.pdf            # write-up of the GLCM+LBP+XGBoost approach and results
+│   └── prostate_cancer_xgboost.pdf            write-up of the approach and results
 └── README.md
 ```
 
----
+<br>
 
-## 📄 Reference
+## Reference
 
-This work is written up as *"Automated System for Prostate Cancer Detection from Histopathology Images Using XGBoost"* — Aniket Patil, Sujal Revankar, Viraj Patil, Aditi Agasgekar, Prema T Akkasaligar, Priyanka A Gavade, Dept. of CSE (AI), KLE Technological University, Dr. M. S. Sheshgiri Campus, Belagavi.
-
----
-
+Patil A., Revankar S., Patil V., Agasgekar A., Akkasaligar P. T., Gavade P. A.
+*Automated System for Prostate Cancer Detection from Histopathology Images Using XGBoost.*
+Department of CSE (AI), KLE Technological University, Dr. M. S. Sheshgiri Campus, Belagavi.
