@@ -9,13 +9,13 @@
 ![TensorFlow](https://img.shields.io/badge/tensorflow-keras-3b4252?style=flat-square&logo=tensorflow&logoColor=white)
 ![TFLite](https://img.shields.io/badge/tflite-edge%20deployment-3b4252?style=flat-square)
 
-[Overview](#overview) · [Pipeline](#pipeline) · [Results](#results) · [Approach](#approach) · [Dataset](#dataset) · [Structure](#project-structure) · [Reference](#reference)
+[Overview](#-overview) · [Pipeline](#-pipeline) · [Results](#-results) · [Approach](#-approach) · [Dataset](#-dataset) · [Structure](#-project-structure) · [Reference](#-reference)
 
 </div>
 
 <br>
 
-## Overview
+## 🔬 Overview
 
 Reading prostate biopsy slides is slow and subjective, and the same tissue can receive different grades from different pathologists. Deep learning is the obvious fix, but it usually needs large annotated datasets, which histopathology rarely has.
 
@@ -34,7 +34,7 @@ On SICAPv2, a boosted tree model on GLCM and LBP features outperformed every dee
 
 <br>
 
-## Pipeline
+## 🧭 Pipeline
 
 <p align="center">
   <img src="assets/methodology_pipeline.png" alt="Methodology pipeline: dataset, preprocessing, feature extraction, model, evaluation, prediction" width="860">
@@ -42,7 +42,7 @@ On SICAPv2, a boosted tree model on GLCM and LBP features outperformed every dee
 
 <br>
 
-## Results
+## 📊 Results
 
 ### Handcrafted features with XGBoost
 
@@ -50,7 +50,7 @@ Trained on 256 x 256 tissue patches.
 
 | Feature set | Accuracy | ROC-AUC | Sensitivity | Specificity | F1 (macro) |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **GLCM + LBP** | **0.8437** | **0.9243** | 0.8462 | 0.8418 | 0.8420 |
+| 🥇 **GLCM + LBP** | **0.8437** | **0.9243** | 0.8462 | 0.8418 | 0.8420 |
 | GLCM + HOG | 0.6984 | 0.7607 | 0.6130 | 0.7630 | 0.6880 |
 | HOG + LBP | 0.6912 | 0.7416 | 0.5690 | 0.7830 | 0.6910 |
 
@@ -66,7 +66,7 @@ For context, 84.37% accuracy edges out the 83.04% DenseNet121 baseline reported 
   <img src="assets/confusion_matrix.png" alt="Confusion matrix for the XGBoost GLCM+LBP model" width="360">
 </p>
 
-### Edge deployment
+### 📱 Edge deployment
 
 The best deep model was converted to TFLite and compressed with dynamic-range, float16, and full INT8 quantization, plus pruning.
 
@@ -82,7 +82,7 @@ Compression costs under one point of AUC in exchange for a smaller model and low
 
 <br>
 
-## Approach
+## 🔧 Approach
 
 **1. Preprocessing**
 Whole-slide images are cut into non-overlapping 256 x 256 patches, each paired with a binary lesion mask. Patches are tiled into 32 x 32 blocks, and tiles that are more than about 95% background are dropped.
@@ -123,7 +123,7 @@ The strongest deep model is converted to TFLite, quantized and pruned, then benc
 
 <br>
 
-## Dataset
+## 🧬 Dataset
 
 [SICAPv2](https://data.mendeley.com/datasets/9xxm58dvs3/1) contains 18,783 RGB prostate tissue patches with pixel-level cancer masks.
 
@@ -134,13 +134,13 @@ The strongest deep model is converted to TFLite, quantized and pruned, then benc
 
 <br>
 
-## Tech stack
+## 🧰 Tech stack
 
 Python, scikit-learn, scikit-image, XGBoost, TensorFlow / Keras, OpenCV, TensorFlow Lite, TensorFlow Model Optimization
 
 <br>
 
-## Project structure
+## 📁 Project structure
 
 ```
 .
@@ -159,7 +159,7 @@ Python, scikit-learn, scikit-image, XGBoost, TensorFlow / Keras, OpenCV, TensorF
 
 <br>
 
-## Reference
+## 📄 Reference
 
 Patil A., Revankar S., Patil V., Agasgekar A., Akkasaligar P. T., Gavade P. A.
 *Automated System for Prostate Cancer Detection from Histopathology Images Using XGBoost.*
